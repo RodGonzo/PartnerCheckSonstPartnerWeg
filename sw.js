@@ -1,10 +1,11 @@
-const CACHE_NAME = "gripgrigri-v1";
+const CACHE_NAME = "gripgrigri-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./data.js",
+  "./update.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -27,15 +28,19 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  // Network-first: online gibt es immer die neueste Version (inkl. Update-Popup),
+  // offline greift der Zwischenspeicher als Rueckfalloption.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse.clone()));
-          return networkResponse;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse.ok) {
+          const copy = networkResponse.clone();
+          event.waitUntil(
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy))
+          );
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

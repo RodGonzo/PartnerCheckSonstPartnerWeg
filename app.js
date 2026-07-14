@@ -8,7 +8,7 @@
 
   // ---------- State ----------
   function defaultSchemeState() {
-    return { known: {}, quizBest: 0, quizAttempts: 0, scenariosDone: {}, checklistDone: false };
+    return { known: {}, quizBest: 0, scenariosDone: {}, checklistDone: false, checklist: {} };
   }
 
   function loadState() {
@@ -35,7 +35,9 @@
     const cardsPct = c.flashcards.length ? Object.keys(s.known).filter(i => s.known[i]).length / c.flashcards.length : 0;
     const quizPct = c.quiz.length ? Math.min(1, s.quizBest / c.quiz.length) : 0;
     const scenPct = c.scenarios.length ? Object.keys(s.scenariosDone).filter(i => s.scenariosDone[i]).length / c.scenarios.length : 0;
-    const overall = (cardsPct + quizPct + scenPct) / 3;
+    const checkTotal = c.checklist.reduce((sum, cat) => sum + cat.items.length, 0);
+    const checkPct = checkTotal ? Object.keys(s.checklist).filter(k => s.checklist[k]).length / checkTotal : 0;
+    const overall = (cardsPct + quizPct + scenPct + checkPct) / 4;
     return Math.round(overall * 100);
   }
 
@@ -45,11 +47,22 @@
   let scenarioState = null;
   let flashState = null;
 
-  function nav(newRoute) {
+  function nav(newRoute, replace) {
     route = newRoute;
+    if (replace) history.replaceState(route, "");
+    else history.pushState(route, "");
     window.scrollTo(0, 0);
     render();
   }
+
+  // System-Zurück (Android-Geste, Browser-Back) navigiert Screen-weise zurück.
+  window.addEventListener("popstate", (e) => {
+    route = e.state || { screen: "home" };
+    quizState = null;
+    scenarioState = null;
+    window.scrollTo(0, 0);
+    render();
+  });
 
   // ---------- Helpers ----------
   function ringSVG(pct, size, stroke, color) {
@@ -57,7 +70,7 @@
     const c = 2 * Math.PI * r;
     const offset = c - (pct / 100) * c;
     return `<svg width="${size}" height="${size}">
-      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#2a3b48" stroke-width="${stroke}"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--track)" stroke-width="${stroke}"/>
       <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
         stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
     </svg>`;
@@ -65,12 +78,6 @@
 
   function schemeColor(key) {
     return key === "toprope" ? "var(--accent)" : "var(--accent-vorstieg)";
-  }
-
-  function el(html) {
-    const t = document.createElement("template");
-    t.innerHTML = html.trim();
-    return t.content.firstElementChild;
   }
 
   // ---------- Screens ----------
@@ -119,7 +126,7 @@
 
         <div class="install-banner">
           <div class="ic">📲</div>
-          <div>Tipp: Über das Browser-Menü „Zum Startbildschirm hinzufügen“ wählen – dann startet die App direkt vom Homescreen, auch offline.</div>
+          <div>Tipp: Über das Browser-Menü „Zum Startbildschirm hinzufügen" wählen – dann startet die App direkt vom Homescreen, auch offline.</div>
         </div>
       </div>
     `;
@@ -179,7 +186,7 @@
         </div>` : ""}
       </div>
     `;
-    app.querySelector("[data-back]").addEventListener("click", () => nav({ screen: "home" }));
+    app.querySelector("[data-back]").addEventListener("click", () => history.back());
     app.querySelectorAll("[data-go]").forEach(b => {
       b.addEventListener("click", () => nav({ screen: b.dataset.go, key }));
     });
@@ -217,10 +224,11 @@
         </div>
       </div>
     `;
-    app.querySelector("[data-back]").addEventListener("click", () => nav({ screen: "menu", key }));
-    app.querySelector("#flipCard").addEventListener("click", () => {
+    app.querySelector("[data-back]").addEventListener("click", () => history.back());
+    const flipCard = app.querySelector("#flipCard");
+    flipCard.addEventListener("click", () => {
       flashState.flipped = !flashState.flipped;
-      render();
+      flipCard.classList.toggle("flipped", flashState.flipped);
     });
     app.querySelectorAll("[data-know]").forEach(b => {
       b.addEventListener("click", (ev) => {
@@ -270,8 +278,8 @@
           </div>
         </div>
       `;
-      app.querySelector("[data-again]").addEventListener("click", () => { quizState = null; nav({ screen: "quiz", key }); });
-      app.querySelector("[data-back]").addEventListener("click", () => { quizState = null; nav({ screen: "menu", key }); });
+      app.querySelector("[data-again]").addEventListener("click", () => { quizState = null; nav({ screen: "quiz", key }, true); });
+      app.querySelector("[data-back]").addEventListener("click", () => { quizState = null; history.back(); });
       setActiveNav(key);
       return;
     }
@@ -294,7 +302,7 @@
         <div id="explanationSlot"></div>
       </div>
     `;
-    app.querySelector("[data-back]").addEventListener("click", () => { quizState = null; nav({ screen: "menu", key }); });
+    app.querySelector("[data-back]").addEventListener("click", () => { quizState = null; history.back(); });
 
     app.querySelectorAll(".quiz-option").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -342,8 +350,8 @@
           </div>
         </div>
       `;
-      app.querySelector("[data-again]").addEventListener("click", () => { scenarioState = null; nav({ screen: "scenario", key }); });
-      app.querySelector("[data-back]").addEventListener("click", () => { scenarioState = null; nav({ screen: "menu", key }); });
+      app.querySelector("[data-again]").addEventListener("click", () => { scenarioState = null; nav({ screen: "scenario", key }, true); });
+      app.querySelector("[data-back]").addEventListener("click", () => { scenarioState = null; history.back(); });
       setActiveNav(key);
       return;
     }
@@ -367,7 +375,7 @@
         <div id="explanationSlot"></div>
       </div>
     `;
-    app.querySelector("[data-back]").addEventListener("click", () => { scenarioState = null; nav({ screen: "menu", key }); });
+    app.querySelector("[data-back]").addEventListener("click", () => { scenarioState = null; history.back(); });
 
     app.querySelectorAll(".quiz-option").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -409,12 +417,14 @@
         ${c.checklist.map((cat, ci) => `
           <div class="checklist-cat">
             <h3>${cat.category}</h3>
-            ${cat.items.map((item, ii) => `
-              <div class="check-item" data-cat="${ci}" data-item="${ii}">
-                <div class="box"></div>
+            ${cat.items.map((item, ii) => {
+              const checked = !!state[key].checklist[ci + "-" + ii];
+              return `
+              <div class="check-item ${checked ? "checked" : ""}" data-cat="${ci}" data-item="${ii}">
+                <div class="box">${checked ? "✓" : ""}</div>
                 <span class="label">${item}</span>
               </div>
-            `).join("")}
+            `;}).join("")}
           </div>
         `).join("")}
         <div class="checklist-summary">
@@ -422,20 +432,23 @@
         </div>
       </div>
     `;
-    app.querySelector("[data-back]").addEventListener("click", () => nav({ screen: "menu", key }));
+    app.querySelector("[data-back]").addEventListener("click", () => history.back());
     const items = app.querySelectorAll(".check-item");
     items.forEach(it => {
       it.addEventListener("click", () => {
-        it.classList.toggle("checked");
-        it.querySelector(".box").textContent = it.classList.contains("checked") ? "✓" : "";
-        const allChecked = Array.from(items).every(x => x.classList.contains("checked"));
-        if (allChecked) {
-          state[key].checklistDone = true;
-          saveState();
-        }
+        const itemKey = it.dataset.cat + "-" + it.dataset.item;
+        const checked = !state[key].checklist[itemKey];
+        state[key].checklist[itemKey] = checked;
+        it.classList.toggle("checked", checked);
+        it.querySelector(".box").textContent = checked ? "✓" : "";
+        state[key].checklistDone = Array.from(items).every(x => x.classList.contains("checked"));
+        saveState();
       });
     });
     app.querySelector("#resetCheck").addEventListener("click", () => {
+      state[key].checklist = {};
+      state[key].checklistDone = false;
+      saveState();
       items.forEach(it => { it.classList.remove("checked"); it.querySelector(".box").textContent = ""; });
     });
     setActiveNav(key);
@@ -444,11 +457,6 @@
   // ---------- Knots ----------
   let knotStepIndex = {}; // id -> current step count shown
 
-  function knotPathD(fraction) {
-    // Decorative stylized rope loop, drawn progressively.
-    return "M20,90 C20,40 60,20 100,20 C160,20 160,80 110,80 C70,80 70,40 100,40 C140,40 150,70 120,90 C90,110 40,100 30,70";
-  }
-
   function renderKnots() {
     app.innerHTML = `
       <div class="screen">
@@ -456,25 +464,26 @@
           <button class="back-btn" data-back>‹</button>
           <h1>Knotengalerie</h1>
         </div>
-        <p style="color:var(--text-dim); font-size:13px; margin-top:0;">Tippe auf „Weiter“, um dir die Bindeschritte nacheinander anzusehen.</p>
+        <p style="color:var(--text-dim); font-size:13px; margin-top:0;">Tippe auf „Weiter", um dir die Bindeschritte nacheinander anzusehen.</p>
         ${CONTENT.knots.map(k => renderKnotCard(k)).join("")}
       </div>
     `;
-    app.querySelector("[data-back]").addEventListener("click", () => nav({ screen: "home" }));
+    app.querySelector("[data-back]").addEventListener("click", () => history.back());
 
-    CONTENT.knots.forEach(k => {
-      const wrap = document.getElementById("knot-" + k.id);
-      wrap.querySelector("[data-step-next]").addEventListener("click", () => {
-        const total = k.steps.length;
-        knotStepIndex[k.id] = ((knotStepIndex[k.id] || 1) % total) + 1;
-        updateKnotCard(k);
-      });
-      wrap.querySelector("[data-step-reset]").addEventListener("click", () => {
-        knotStepIndex[k.id] = 1;
-        updateKnotCard(k);
-      });
-    });
+    CONTENT.knots.forEach(wireKnotCard);
     setActiveNav("knots");
+  }
+
+  function wireKnotCard(k) {
+    const wrap = document.getElementById("knot-" + k.id);
+    wrap.querySelector("[data-step-next]").addEventListener("click", () => {
+      knotStepIndex[k.id] = ((knotStepIndex[k.id] || 1) % k.steps.length) + 1;
+      updateKnotCard(k);
+    });
+    wrap.querySelector("[data-step-reset]").addEventListener("click", () => {
+      knotStepIndex[k.id] = 1;
+      updateKnotCard(k);
+    });
   }
 
   function renderKnotCard(k) {
@@ -500,16 +509,7 @@
   function updateKnotCard(k) {
     const wrap = document.getElementById("knot-" + k.id);
     wrap.outerHTML = renderKnotCard(k);
-    const newWrap = document.getElementById("knot-" + k.id);
-    newWrap.querySelector("[data-step-next]").addEventListener("click", () => {
-      const total = k.steps.length;
-      knotStepIndex[k.id] = ((knotStepIndex[k.id] || 1) % total) + 1;
-      updateKnotCard(k);
-    });
-    newWrap.querySelector("[data-step-reset]").addEventListener("click", () => {
-      knotStepIndex[k.id] = 1;
-      updateKnotCard(k);
-    });
+    wireKnotCard(k);
   }
 
   function knotSVG(id, current, total) {
@@ -519,12 +519,12 @@
     const dashOffset = pathLen * (1 - frac);
     return `
       <svg width="180" height="130" viewBox="0 0 180 130">
-        <path d="${pathD}" fill="none" stroke="#2a3b48" stroke-width="7" stroke-linecap="round"/>
+        <path d="${pathD}" fill="none" stroke="var(--track)" stroke-width="7" stroke-linecap="round"/>
         <path d="${pathD}" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"
           stroke-dasharray="${pathLen}" stroke-dashoffset="${dashOffset}"
           style="transition: stroke-dashoffset .5s ease;"/>
         <circle cx="20" cy="90" r="6" fill="var(--accent-2)"/>
-        <circle cx="30" cy="70" r="6" fill="${frac >= 1 ? 'var(--accent-2)' : '#2a3b48'}"/>
+        <circle cx="30" cy="70" r="6" fill="${frac >= 1 ? 'var(--accent-2)' : 'var(--track)'}"/>
       </svg>
     `;
   }
@@ -560,7 +560,32 @@
     }
   }
 
+  history.replaceState(route, "");
   render();
+  checkUpdateNote();
+
+  // ---------- Update-Popup ----------
+  function checkUpdateNote() {
+    if (typeof UPDATE_NOTE === "undefined" || !UPDATE_NOTE.id) return;
+    const seenKey = "gripgrigri_seen_update";
+    const lastSeen = localStorage.getItem(seenKey);
+    if (lastSeen === UPDATE_NOTE.id) return;
+
+    const overlay = document.createElement("div");
+    overlay.className = "update-overlay";
+    overlay.innerHTML = `
+      <div class="update-modal">
+        <div class="update-emoji">${UPDATE_NOTE.emoji || "💌"}</div>
+        <p>${UPDATE_NOTE.message}</p>
+        <button class="primary-btn" id="updateNoteDismiss">${UPDATE_NOTE.button || "OK"}</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById("updateNoteDismiss").addEventListener("click", () => {
+      localStorage.setItem(seenKey, UPDATE_NOTE.id);
+      overlay.remove();
+    });
+  }
 
   // ---------- Service worker ----------
   if ("serviceWorker" in navigator) {

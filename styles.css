@@ -1,14 +1,16 @@
 :root {
-  --bg: #0f1720;
-  --bg-soft: #16212c;
-  --card: #1c2b38;
-  --card-2: #223342;
-  --text: #eef3f7;
-  --text-dim: #9fb0bd;
-  --accent: #ff7a45;
-  --accent-2: #3ddc97;
-  --accent-vorstieg: #4fa3ff;
-  --danger: #ff5c6c;
+  --bg: #121a10;
+  --bg-soft: #182213;
+  --card: #202b1a;
+  --card-2: #283523;
+  --text: #f1f4ea;
+  --text-dim: #a9b79b;
+  --accent: #9ab654;
+  --accent-2: #c3d977;
+  --accent-vorstieg: #4f8b5b;
+  --danger: #d9634a;
+  --track: #33422c;
+  --btn-text-on-accent: #16220f;
   --radius: 18px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -209,7 +211,7 @@ button {
   font-weight: 600;
 }
 .flip-back {
-  background: linear-gradient(155deg, #23384a, #1a2836);
+  background: linear-gradient(155deg, #2a3a22, #1c2717);
   transform: rotateY(180deg);
   font-size: 15px;
   color: var(--text-dim);
@@ -236,7 +238,7 @@ button {
   font-weight: 600;
 }
 .btn-again { background: var(--card-2); color: var(--text); }
-.btn-know { background: var(--accent-2); color: #05261a; }
+.btn-know { background: var(--accent-2); color: var(--btn-text-on-accent); }
 
 /* ---------- Quiz ---------- */
 .quiz-progress {
@@ -269,8 +271,8 @@ button {
   border: 2px solid transparent;
 }
 .quiz-option:active { transform: scale(.98); }
-.quiz-option.correct { border-color: var(--accent-2); background: rgba(61,220,151,.15); }
-.quiz-option.wrong { border-color: var(--danger); background: rgba(255,92,108,.15); }
+.quiz-option.correct { border-color: var(--accent-2); background: rgba(195,217,119,.18); }
+.quiz-option.wrong { border-color: var(--danger); background: rgba(217,99,74,.18); }
 .quiz-option[disabled] { pointer-events: none; }
 
 .quiz-explanation {
@@ -286,7 +288,7 @@ button {
 .quiz-next {
   margin-top: 16px;
   background: var(--accent);
-  color: #2b1305;
+  color: var(--btn-text-on-accent);
   padding: 14px 0;
   border-radius: 14px;
   font-weight: 700;
@@ -308,7 +310,7 @@ button {
 }
 .primary-btn {
   background: var(--accent);
-  color: #2b1305;
+  color: var(--btn-text-on-accent);
   padding: 14px 0;
   border-radius: 14px;
   font-weight: 700;
@@ -380,7 +382,7 @@ button {
 .check-item.checked .box {
   background: var(--accent-2);
   border-color: var(--accent-2);
-  color: #05261a;
+  color: var(--btn-text-on-accent);
 }
 .check-item.checked span.label { color: var(--text-dim); text-decoration: line-through; }
 
@@ -428,7 +430,7 @@ button {
   font-size: 11px;
   font-weight: 700;
 }
-.knot-steps li.active .num { background: var(--accent); color: #2b1305; }
+.knot-steps li.active .num { background: var(--accent); color: var(--btn-text-on-accent); }
 
 .knot-controls {
   display: flex;
@@ -500,4 +502,33 @@ button {
   color: var(--text-dim);
   padding: 40px 20px;
   font-size: 14px;
+}
+
+/* ---------- Update-Popup ---------- */
+.update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(4px);
+  animation: fadein .25s ease;
+}
+.update-modal {
+  background: linear-gradient(155deg, var(--card), var(--card-2));
+  border-radius: var(--radius);
+  padding: 26px 22px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
+}
+.update-modal .update-emoji { font-size: 44px; }
+.update-modal p {
+  margin: 14px 0 18px;
+  font-size: 15px;
+  line-height: 1.5;
 }

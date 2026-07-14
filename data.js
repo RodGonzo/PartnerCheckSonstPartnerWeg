@@ -231,7 +231,7 @@ const CONTENT = {
     key: "vorstieg",
     title: "Vorstiegschein",
     subtitle: "Klinken, Seilmanagement & Sturztraining",
-    emoji: "🪢",
+    emoji: "🔗",
 
     checklist: [
       {
